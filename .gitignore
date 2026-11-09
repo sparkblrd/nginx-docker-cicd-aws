@@ -1,0 +1,6 @@
+.env
+*.pem
+ci_deploy_key
+ci_deploy_key.pub
+.terraform/
+*.tfstate*
