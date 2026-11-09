@@ -1,0 +1,12 @@
+.git
+.github
+.gitignore
+.dockerignore
+docker-compose.yml
+scripts
+README.md
+terraform
+monitoring
+k8s
+*.pem
+*.md
