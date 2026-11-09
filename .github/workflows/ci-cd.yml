@@ -1,0 +1,63 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Hadolint (Dockerfile)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+      - name: ShellCheck (scripts)
+        run: shellcheck scripts/*.sh
+
+  build:
+    name: Build and test
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (local, for tests)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          tags: nginx-docker-cicd-aws:test
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test container
+        run: |
+          set -euo pipefail
+          docker run -d --name test-container -p 8080:8080 nginx-docker-cicd-aws:test
+          curl --fail --silent --show-error --retry 10 --retry-delay 1 --retry-connrefused \
+            http://localhost:8080/healthz
+          curl --fail --silent --show-error http://localhost:8080/ | grep -q "Hello, World"
+          test "$(curl --fail --silent http://localhost:8080/version.txt)" = "${GITHUB_SHA}"
+          docker logs test-container
+          docker rm -f test-container
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs test-container || true
