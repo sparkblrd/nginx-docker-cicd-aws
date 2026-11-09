@@ -54,7 +54,20 @@ jobs:
         run: |
           set -euo pipefail
           docker run -d --name test-container -p 8080:8080 nginx-docker-cicd-aws:test
-          curl --fail --silent --show-error --retry 10 --retry-delay 1 --retry-connrefused \
+
+          status="starting"
+          for _ in $(seq 1 30); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' test-container)"
+            [ "${status}" = "healthy" ] && break
+            sleep 1
+          done
+          if [ "${status}" != "healthy" ]; then
+            echo "Container status: ${status}"
+            docker logs test-container
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --retry 5 --retry-delay 1 --retry-all-errors \
             http://localhost:8080/healthz
           curl --fail --silent --show-error http://localhost:8080/ | grep -q "Hello, World"
           test "$(curl --fail --silent http://localhost:8080/version.txt)" = "${GITHUB_SHA}"
