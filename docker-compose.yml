@@ -1,0 +1,16 @@
+services:
+  web:
+    image: "${IMAGE:?IMAGE is required}:${TAG:-latest}"
+    container_name: nginx-docker-cicd-aws
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
