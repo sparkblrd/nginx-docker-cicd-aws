@@ -96,3 +96,49 @@ jobs:
             ${{ env.IMAGE }}:latest
           build-args: GIT_SHA=${{ github.sha }}
           cache-from: type=gha
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${SSH_PRIVATE_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${SSH_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+
+      - name: Copy files and run deploy.sh on the server
+        run: |
+          set -euo pipefail
+          SSH_OPTS=(-i "${HOME}/.ssh/deploy_key" -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          TARGET="${SSH_USER}@${SSH_HOST}"
+          ssh "${SSH_OPTS[@]}" "${TARGET}" 'mkdir -p ~/app'
+          scp "${SSH_OPTS[@]}" docker-compose.yml scripts/deploy.sh "${TARGET}:~/app/"
+          ssh "${SSH_OPTS[@]}" "${TARGET}" "cd ~/app && IMAGE='${IMAGE}' TAG='${TAG}' bash deploy.sh"
+
+      - name: Smoke test (public URL)
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors \
+            "http://${SSH_HOST}/healthz"
+          deployed="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 --retry-all-errors "http://${SSH_HOST}/version.txt")"
+          echo "Deployed version: ${deployed}"
+          test "${deployed}" = "${GITHUB_SHA}"
