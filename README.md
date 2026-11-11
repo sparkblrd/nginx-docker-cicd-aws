@@ -141,3 +141,23 @@ The monitoring stack is deployed manually, CI does not deploy it.
 nginx writes JSON access logs to stdout:
 
     docker logs nginx-docker-cicd-aws --tail 20
+
+## Kubernetes
+
+The `k8s/` directory contains manifests for running the same image on a cluster:
+
+- `deployment.yaml`: 2 replicas, readiness and liveness probes on `/healthz`, CPU and memory requests and limits, non-root user (UID 101), read-only root filesystem with `emptyDir` volumes for `/tmp` and the nginx cache, all capabilities dropped.
+- `service.yaml`: ClusterIP service on port 80.
+- `kustomization.yaml`: sets the image tag in one place.
+
+Try it locally with kind:
+
+```bash
+kind create cluster --name nginx-cicd
+kubectl apply -k k8s
+kubectl rollout status deployment/nginx-docker-cicd-aws
+kubectl port-forward svc/nginx-docker-cicd-aws 8080:80
+curl -i http://localhost:8080/healthz
+```
+
+The manifests are validated against Kubernetes 1.31 by kubeconform in the `k8s-validate` workflow. The cluster was tested on kind, not on the EC2 instance. A t3.micro with 1 GB RAM is too small to run a control plane next to the other containers.
