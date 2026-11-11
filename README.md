@@ -161,3 +161,16 @@ curl -i http://localhost:8080/healthz
 ```
 
 The manifests are validated against Kubernetes 1.31 by kubeconform in the `k8s-validate` workflow. The cluster was tested on kind, not on the EC2 instance. A t3.micro with 1 GB RAM is too small to run a control plane next to the other containers.
+
+## Project scope
+
+| Task | Status |
+|---|---|
+| Dockerfile for an nginx web app | Done |
+| Build and deploy scripts | Done |
+| CI/CD on every commit (GitHub Actions) | Done |
+| Monitoring and logging | Done: nginx stub_status, Prometheus, Grafana, JSON access logs |
+| Kubernetes manifests | Done: Deployment, Service, Kustomize, validated in CI, tested on kind |
+| Terraform | Not implemented |
+
+Security notes: the server's SSH port is open to the internet for GitHub-hosted runners, and access is key-only. Grafana listens on 127.0.0.1 and is reachable only through an SSH tunnel. The metrics endpoint is not published outside the Docker network.
