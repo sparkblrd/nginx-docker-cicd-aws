@@ -1,7 +1,5 @@
 # nginx-docker-cicd-aws
 
-[![CI/CD](https://github.com/<GITHUB_USER>/nginx-docker-cicd-aws/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/<GITHUB_USER>/nginx-docker-cicd-aws/actions/workflows/ci-cd.yml)
-
 A "Hello, World!" web app served by **Nginx** in a **Docker** container. A **GitHub Actions** pipeline lints, builds, tests and publishes the image to **Docker Hub**, then deploys it to an **AWS EC2** server on every push to `main`.
 
 **Live:** `http://16.171.17.182/`
