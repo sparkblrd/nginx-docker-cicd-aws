@@ -4,7 +4,7 @@
 
 A "Hello, World!" web app served by **Nginx** in a **Docker** container. A **GitHub Actions** pipeline lints, builds, tests and publishes the image to **Docker Hub**, then deploys it to an **AWS EC2** server on every push to `main`.
 
-**Live:** `http://<EC2_PUBLIC_IP>/`
+**Live:** `http://16.171.17.182/`
 
 ![Deployed page](docs/screenshots/site.png)
 
@@ -114,8 +114,3 @@ Logs (JSON, rotated by Docker): `docker logs -f nginx-docker-cicd-aws`.
 ## Security notes
 
 Non-root container with all capabilities dropped, pinned base image, key-only SSH with a dedicated `deploy` user, secrets only in GitHub Secrets. Trade-off: port 22 is open to the world because GitHub runners have no fixed IPs; production should use a self-hosted runner or AWS SSM instead.
-
-## Bonus
-
-- [x] Logging: JSON access logs, log rotation
-- [ ] Monitoring, Terraform, Kubernetes (planned)
