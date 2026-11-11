@@ -112,3 +112,32 @@ Logs (JSON, rotated by Docker): `docker logs -f nginx-docker-cicd-aws`.
 ## Security notes
 
 Non-root container with all capabilities dropped, pinned base image, key-only SSH with a dedicated `deploy` user, secrets only in GitHub Secrets. Trade-off: port 22 is open to the world because GitHub runners have no fixed IPs; production should use a self-hosted runner or AWS SSM instead.
+
+## Monitoring and logging
+
+The `monitoring/` stack contains nginx-prometheus-exporter, Prometheus and Grafana.
+
+    nginx :8081/stub_status (internal only)
+      -> nginx-exporter :9113 -> Prometheus :9090 -> Grafana :3000 (127.0.0.1 only)
+
+Start it on the server after the application is deployed (the `monitoring` network is created by the app's compose file):
+
+    cd ~/monitoring
+    read -s -p "Grafana admin password: " GPASS; echo
+    printf "GRAFANA_ADMIN_PASSWORD=%s\n" "$GPASS" > .env
+    chmod 600 .env && unset GPASS
+    sudo docker compose up -d
+
+Open Grafana through an SSH tunnel from your machine:
+
+    ssh -i <key> -N -L 3000:localhost:3000 ubuntu@<SERVER_IP>
+
+Then open http://localhost:3000, log in as `admin` and open the "nginx overview" dashboard.
+
+The monitoring stack is deployed manually, CI does not deploy it.
+
+### Logging
+
+nginx writes JSON access logs to stdout:
+
+    docker logs nginx-docker-cicd-aws --tail 20
