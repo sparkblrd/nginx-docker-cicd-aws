@@ -136,6 +136,8 @@ Then open http://localhost:3000, log in as `admin` and open the "nginx overview"
 
 The monitoring stack is deployed manually, CI does not deploy it.
 
+![Grafana nginx overview dashboard](docs/screenshots/grafana.png)
+
 ### Logging
 
 nginx writes JSON access logs to stdout:
